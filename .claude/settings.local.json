@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(EMSDK_QUIET=1 curl -sS -w \"\\\\nHTTP:%{http_code}\\\\n\" \"https://api.anthropic.com/v1/design/h/pQa2-kCAI79hYS9voDkIyw?open_file=socialNET.dc.html\" -v)",
+      "WebFetch(domain:claude.ai)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "Bash(EMSDK_QUIET=1 node -v)",
+      "Bash(npm -v)",
+      "Bash(npm ping *)",
+      "Bash(EMSDK_QUIET=1 npm install --no-audit --no-fund)",
+      "Bash(EMSDK_QUIET=1 npm run build)",
+      "Bash(EMSDK_QUIET=1 sed -n '12,40p' \"C:/Users/psi/AppData/Local/Temp/claude/C--Users-psi-Documents-socialNET/087252b2-c009-4bae-ba9f-fa2da533ce47/tasks/b37ov74h0.output\")",
+      "Bash(EMSDK_QUIET=1 npm install --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000)",
+      "Bash(EMSDK_QUIET=1 rm -rf src)",
+      "Bash(EMSDK_QUIET=1 npm install --legacy-peer-deps --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000)",
+      "Bash(EMSDK_QUIET=1 node node_modules/next/dist/bin/next build)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(EMSDK_QUIET=1 sleep 18)",
+      "Bash(cd \"C:/Users/psi/Documents/socialNET\")",
+      "Bash(rm -rf \"src/app/\\(app\\)/admin/users\" \"src/app/\\(app\\)/admin/integrations\" \"src/app/\\(app\\)/admin/audit\" \"src/app/\\(app\\)/settings\")",
+      "Bash(echo done *)"
+    ]
+  }
+}
