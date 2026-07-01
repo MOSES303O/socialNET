@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -16,8 +17,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "intel",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -75,13 +79,25 @@ APPEND_SLASH = False
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "accounts.authentication.CookieJWTAuthentication",
+    ],
 }
 
-# Dev-only: the Next app runs on localhost:3000 and has no auth yet, so the
-# API is fully open (see AllowAny above) and CORS is scoped to that origin.
+# Tokens are issued as JSON by these endpoints (AllowAny) and turned into
+# httpOnly cookies by Next's route handlers — Django itself never sets them.
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+}
+
+# Dev-only: the Next app runs on localhost:3000; the browser only ever talks
+# to Next (which proxies /api/* to us), so this only matters if something
+# calls Django directly.
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",

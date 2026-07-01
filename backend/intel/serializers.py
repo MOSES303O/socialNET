@@ -9,6 +9,7 @@ from .models import (
     Influencer,
     Mention,
     Report,
+    ScheduledReport,
     TeamUser,
 )
 
@@ -50,15 +51,29 @@ class AlertSerializer(serializers.ModelSerializer):
 
 
 class AlertRuleSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+
     class Meta:
         model = AlertRule
         fields = ["id", "name", "condition", "channels", "on"]
 
 
 class ReportSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+    generated = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+
     class Meta:
         model = Report
         fields = ["id", "title", "type", "period", "generated", "status", "highlights", "metrics"]
+
+
+class ScheduledReportSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = ScheduledReport
+        fields = ["id", "name", "freq", "recipients", "on"]
 
 
 class CrisisSerializer(serializers.ModelSerializer):
@@ -73,7 +88,11 @@ class CrisisSerializer(serializers.ModelSerializer):
 
 
 class TeamUserSerializer(serializers.ModelSerializer):
-    lastActive = serializers.CharField(source="last_active")
+    id = serializers.CharField(read_only=True)
+    initials = serializers.CharField(read_only=True)
+    color = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    lastActive = serializers.CharField(source="last_active", read_only=True)
 
     class Meta:
         model = TeamUser

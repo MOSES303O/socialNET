@@ -1,43 +1,58 @@
 "use client";
 
+import { useState } from "react";
 import { PageContainer } from "@/components/layout/PageHeading";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Switch } from "@/components/ui/misc";
-import { useUI } from "@/lib/store";
+import { Sheet } from "@/components/ui/Sheet";
+import { LANDING_SCREENS, NOTIFICATION_PREFS, useUI } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { currentUser } from "@/lib/session";
-
-const fields = [
-  { label: "Full name", value: "Ochiengs Moses" },
-  { label: "Email", value: "ochiengs@vela.co" },
-  { label: "Role", value: "Admin · Brand Reputation" },
-  { label: "Team", value: "Vela — Brand & Comms" },
-  { label: "Timezone", value: "(GMT−05:00) Eastern" },
-  { label: "Language", value: "English (US)" },
-];
-
-const notifPrefs = [
-  { label: "Critical alerts (crisis, recall)", sub: "In-app · SMS · Email", on: true },
-  { label: "Sentiment shifts", sub: "In-app · Email", on: true },
-  { label: "Viral post detection", sub: "In-app", on: true },
-  { label: "Weekly digest", sub: "Email · Mondays", on: true },
-  { label: "Assignments & mentions of me", sub: "In-app · Email", on: true },
-  { label: "Product updates", sub: "Email", on: false },
-];
+import { useMe, useUpdateMe } from "@/lib/queries";
+import { ROLE_LABELS } from "@/lib/types";
 
 export default function ProfilePage() {
-  const { theme, setTheme } = useUI();
+  const { theme, setTheme, density, setDensity, landingScreen, setLandingScreen, notificationPrefs, setNotificationPref } = useUI();
+  const { data: me } = useMe();
+
+  const updateMe = useUpdateMe();
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "" });
+  const [editError, setEditError] = useState<string | null>(null);
+
+  function openEdit() {
+    if (!me) return;
+    setForm({ name: me.name, email: me.email });
+    setEditError(null);
+    setEditOpen(true);
+  }
+
+  function submitEdit() {
+    if (!form.name.trim() || !form.email.trim()) return;
+    updateMe.mutate(form, {
+      onSuccess: () => setEditOpen(false),
+      onError: async (err) => setEditError(err instanceof Error ? err.message : "Couldn't save changes."),
+    });
+  }
+
+  const fields = [
+    { label: "Full name", value: me?.name ?? "…" },
+    { label: "Email", value: me?.email ?? "…" },
+    { label: "Role", value: me ? ROLE_LABELS[me.role] : "…" },
+    { label: "Team", value: "Vela — Brand & Comms" },
+    { label: "Timezone", value: "(GMT−05:00) Eastern" },
+    { label: "Language", value: "English (US)" },
+  ];
 
   return (
     <PageContainer className="flex max-w-[1080px] flex-col gap-4">
       <Card className="flex items-center gap-[18px] p-6">
-        <Avatar initials={currentUser.initials} size="xl" />
+        <Avatar initials={me?.initials ?? "…"} size="xl" />
         <div className="flex-1">
-          <div className="text-[20px] font-semibold tracking-[-0.01em]">{currentUser.name}</div>
-          <div className="mt-0.5 text-[13px] text-[var(--color-muted)]">Head of Brand Reputation · Vela</div>
+          <div className="text-[20px] font-semibold tracking-[-0.01em]">{me?.name ?? "Loading…"}</div>
+          <div className="mt-0.5 text-[13px] text-[var(--color-muted)]">{me ? `${ROLE_LABELS[me.role]} · Vela` : ""}</div>
         </div>
-        <button className="rounded-[9px] border border-[var(--color-border)] px-4 py-2 text-[13px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">Edit profile</button>
+        <button onClick={openEdit} disabled={!me} className="rounded-[9px] border border-[var(--color-border)] px-4 py-2 text-[13px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)] disabled:opacity-50">Edit profile</button>
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -67,26 +82,54 @@ export default function ProfilePage() {
             </div>
           </Pref>
           <Pref label="Default landing screen" sub="Where socialNET opens">
-            <span className="rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] text-[var(--color-muted)]">Overview ▾</span>
+            <select
+              value={landingScreen}
+              onChange={(e) => setLandingScreen(e.target.value)}
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px] text-[var(--color-muted)] outline-none"
+            >
+              {LANDING_SCREENS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
           </Pref>
           <Pref label="Density" sub="Row spacing" last>
-            <span className="rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-[12px] text-[var(--color-muted)]">Comfortable ▾</span>
+            <select
+              value={density}
+              onChange={(e) => setDensity(e.target.value as "comfortable" | "compact")}
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px] text-[var(--color-muted)] outline-none"
+            >
+              <option value="comfortable">Comfortable</option>
+              <option value="compact">Compact</option>
+            </select>
           </Pref>
         </Card>
       </div>
 
       <Card className="p-[18px_20px]">
         <div className="mb-1 text-[13px] font-semibold">Notification preferences</div>
-        {notifPrefs.map((n) => (
-          <div key={n.label} className="flex items-center gap-3 border-t border-[var(--color-border)] py-[13px]">
+        {NOTIFICATION_PREFS.map((n) => (
+          <div key={n.key} className="flex items-center gap-3 border-t border-[var(--color-border)] py-[13px]">
             <div className="flex-1">
               <div className="text-[13px]">{n.label}</div>
               <div className="mono mt-0.5 text-[10px] text-[var(--color-faint)]">{n.sub}</div>
             </div>
-            <Switch checked={n.on} />
+            <Switch checked={notificationPrefs[n.key] ?? false} onChange={(on) => setNotificationPref(n.key, on)} />
           </div>
         ))}
       </Card>
+
+      <Sheet open={editOpen} onClose={() => setEditOpen(false)} title="Edit profile" width="max-w-sm">
+        <div className="flex flex-col gap-3.5 p-5">
+          <label className="block">
+            <span className="mb-1.5 block text-[12px] text-[var(--color-muted)]">Full name</span>
+            <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="h-9 w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] outline-none ring-focus" />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-[12px] text-[var(--color-muted)]">Email</span>
+            <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="h-9 w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 text-[13px] outline-none ring-focus" />
+          </label>
+          {editError && <p className="text-[12px] text-[var(--color-critical)]">{editError}</p>}
+          <button onClick={submitEdit} disabled={updateMe.isPending} className="mt-2 rounded-[9px] bg-[var(--color-primary)] py-2.5 text-[13px] font-medium text-white disabled:opacity-50">Save changes</button>
+        </div>
+      </Sheet>
     </PageContainer>
   );
 }

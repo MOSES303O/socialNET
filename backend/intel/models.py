@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -130,6 +131,9 @@ class TeamUser(models.Model):
     role = models.CharField(max_length=20)
     status = models.CharField(max_length=20)
     last_active = models.CharField(max_length=40)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name="profile",
+    )
 
     class Meta:
         ordering = ["id"]
@@ -145,6 +149,20 @@ class Integration(models.Model):
     account = models.CharField(max_length=120)
     status = models.CharField(max_length=20)
     detail = models.CharField(max_length=120)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.name
+
+
+class ScheduledReport(models.Model):
+    id = models.CharField(primary_key=True, max_length=20)
+    name = models.CharField(max_length=120)
+    freq = models.CharField(max_length=60)
+    recipients = models.CharField(max_length=120)
+    on = models.BooleanField(default=True)
 
     class Meta:
         ordering = ["id"]

@@ -7,6 +7,7 @@ export type Sentiment = "positive" | "neutral" | "negative" | "mixed";
 export type Priority = "low" | "medium" | "high" | "critical";
 export type Severity = "info" | "warning" | "critical";
 export type Role = "admin" | "analyst" | "community" | "executive";
+export const ROLE_LABELS: Record<Role, string> = { admin: "Admin", analyst: "Analyst", community: "Community Mgr", executive: "Executive" };
 export type DateRange = "today" | "7d" | "30d" | "90d" | "custom";
 export type Intent = "positive" | "warning" | "critical" | "info" | "neutral";
 

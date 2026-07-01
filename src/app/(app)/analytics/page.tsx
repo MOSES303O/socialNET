@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { PageContainer } from "@/components/layout/PageHeading";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
@@ -110,7 +111,7 @@ export default function AnalyticsPage() {
         <Card className="p-[16px_18px]">
           <div className="mb-3 flex items-center">
             <span className="text-[13px] font-semibold">Influencer impact</span>
-            <span className="ml-auto text-[11px] text-[var(--color-primary-ink)]">View all →</span>
+            <Link href="/mentions" className="ml-auto text-[11px] text-[var(--color-primary-ink)] hover:underline">View all →</Link>
           </div>
           <div className="mono grid grid-cols-[1.6fr_.7fr_.8fr_1fr_56px] border-b border-[var(--color-border)] pb-2 text-[10px] text-[var(--color-faint)]">
             <span>CREATOR</span><span>PLAT</span><span className="text-right">REACH</span><span className="text-right">SENTIMENT</span><span className="text-right">SCORE</span>

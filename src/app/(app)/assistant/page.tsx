@@ -22,13 +22,6 @@ const suggestedPrompts = [
   "Suggest strategies to improve engagement.",
 ];
 
-const chatHistory = [
-  "Negative spike investigation",
-  "#VelaGlow campaign recap",
-  "Competitor share of voice",
-  "Q2 influencer shortlist",
-];
-
 const initialChat: ChatMessage[] = [
   {
     id: "w1", role: "user",
@@ -48,11 +41,66 @@ const initialChat: ChatMessage[] = [
   },
 ];
 
+// Additional canned past conversations for the RECENT sidebar — demo chat
+// history, same treatment as suggestedPrompts/initialChat above.
+const chatArchive: Record<string, ChatMessage[]> = {
+  "Negative spike investigation": initialChat,
+  "#VelaGlow campaign recap": [
+    { id: "c1_u", role: "user", content: "Summarize audience sentiment for the last campaign." },
+    {
+      id: "c1_a", role: "assistant",
+      content: "The #VelaGlow campaign netted 62% positive / 24% neutral / 14% negative across 48.2K mentions. Positivity clustered around the Yuzu flavor and the Maren collab; the negative slice is almost entirely the recall rumor, not campaign fatigue.",
+      cards: [
+        { t: "Net sentiment", v: "+48", s: "pos minus neg", intent: "positive" },
+        { t: "Top driver", v: "Yuzu flavor", s: "8.4k mentions", intent: "positive" },
+      ],
+      sources: ["Analytics · Campaign view", "Mentions · #VelaGlow"],
+    },
+  ],
+  "Competitor share of voice": [
+    { id: "c2_u", role: "user", content: "How does our share of voice compare to competitors this month?" },
+    {
+      id: "c2_a", role: "assistant",
+      content: "Vela holds 31% share of voice in the adaptogen-beverage category this month, up 4pt — driven by the #VelaGlow campaign and the Maren Cole collab. The recall rumor briefly closed the gap with the #2 competitor, but share recovered after the holding statement.",
+      cards: [
+        { t: "Share of voice", v: "31%", s: "+4pt MoM", intent: "positive" },
+        { t: "Nearest rival", v: "22%", s: "flat MoM", intent: "neutral" },
+      ],
+      sources: ["Analytics · Platform comparison"],
+    },
+  ],
+  "Q2 influencer shortlist": [
+    { id: "c3_u", role: "user", content: "Which influencers are driving engagement?" },
+    {
+      id: "c3_a", role: "assistant",
+      content: "Three accounts drove 41% of campaign reach. @tech_maren (418K) is your strongest advocate this week with a 2.1M-reach post. @sarah.k.wellness delivered the highest engagement rate at 11.2%. Watch @dailyhealthnut — large reach but currently negative on sugar content.",
+      cards: [
+        { t: "@tech_maren", v: "2.1M", s: "reach · positive", intent: "positive" },
+        { t: "@sarah.k.wellness", v: "11.2%", s: "engagement rate", intent: "positive" },
+      ],
+      sources: ["Engagement · Top creators"],
+    },
+  ],
+};
+
+const chatHistory = Object.keys(chatArchive);
+
 export default function AssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialChat);
+  const [activeHistory, setActiveHistory] = useState<string | null>("Negative spike investigation");
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  function newConversation() {
+    setMessages([]);
+    setActiveHistory(null);
+  }
+
+  function openHistory(title: string) {
+    setMessages(chatArchive[title]);
+    setActiveHistory(title);
+  }
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, thinking]);
 
@@ -60,6 +108,7 @@ export default function AssistantPage() {
     const prompt = (text ?? input).trim();
     if (!prompt || thinking) return;
     setInput("");
+    setActiveHistory(null);
     setMessages((m) => [...m, { id: `u_${Date.now()}`, role: "user", content: prompt }]);
     setThinking(true);
     const reply = await askAssistant(prompt);
@@ -71,12 +120,12 @@ export default function AssistantPage() {
     <div className="flex h-[calc(100vh-54px)]">
       {/* history */}
       <aside className="hidden w-56 shrink-0 flex-col border-r border-[var(--color-border)] p-3 lg:flex">
-        <button onClick={() => setMessages(initialChat)} className="mb-2 flex items-center justify-center gap-2 rounded-[9px] bg-[var(--color-primary)] py-2 text-[13px] font-medium text-white">
+        <button onClick={newConversation} className="mb-2 flex items-center justify-center gap-2 rounded-[9px] bg-[var(--color-primary)] py-2 text-[13px] font-medium text-white">
           <Plus className="h-4 w-4" /> New conversation
         </button>
         <p className="px-2.5 pb-1 pt-2 text-[10px] font-semibold tracking-[0.07em] text-[var(--color-faint)]">RECENT</p>
-        {chatHistory.map((h, i) => (
-          <button key={h} className={cn("flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px]", i === 0 ? "bg-[var(--color-subtle)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:bg-[var(--color-subtle)]")}>
+        {chatHistory.map((h) => (
+          <button key={h} onClick={() => openHistory(h)} className={cn("flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px]", activeHistory === h ? "bg-[var(--color-subtle)] text-[var(--color-ink)]" : "text-[var(--color-muted)] hover:bg-[var(--color-subtle)]")}>
             <MessageSquare className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{h}</span>
           </button>
         ))}

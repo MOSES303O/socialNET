@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { AreaTrend, PALETTE } from "@/components/charts/Charts";
 import { useEngagementSeries } from "@/lib/queries";
+import { downloadCsv } from "@/lib/csv";
 import type { Platform } from "@/lib/types";
 
 const KPIS = [
@@ -82,7 +83,12 @@ export default function EngagementPage() {
         <Card className="p-[16px_18px]">
           <div className="mb-2 flex items-center">
             <span className="text-[13px] font-semibold">Top-performing content</span>
-            <span className="ml-auto text-[11px] text-[var(--color-primary-ink)]">Export</span>
+            <button
+              onClick={() => downloadCsv("top-performing-content", TOP.map(({ platform, text, author, eng, rate }) => ({ platform, text, author, engagements: eng, rate })))}
+              className="ml-auto text-[11px] text-[var(--color-primary-ink)] hover:underline"
+            >
+              Export
+            </button>
           </div>
           {TOP.map((c, i) => (
             <div key={i} className="flex items-center gap-3 border-t border-[var(--color-border)] py-3 first:border-t-0">

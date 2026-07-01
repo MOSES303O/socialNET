@@ -1,6 +1,16 @@
 from django.urls import path
+from rest_framework.routers import SimpleRouter
 
 from . import views
+
+router = SimpleRouter(trailing_slash=False)
+router.register(r"mentions", views.MentionViewSet, basename="mentions")
+router.register(r"crises", views.CrisisViewSet, basename="crises")
+router.register(r"alert-rules", views.AlertRuleViewSet, basename="alert-rules")
+router.register(r"integrations", views.IntegrationViewSet, basename="integrations")
+router.register(r"team", views.TeamViewSet, basename="team")
+router.register(r"reports", views.ReportViewSet, basename="reports")
+router.register(r"scheduled-reports", views.ScheduledReportViewSet, basename="scheduled-reports")
 
 urlpatterns = [
     path("kpis", views.KpisView.as_view()),
@@ -15,16 +25,9 @@ urlpatterns = [
     path("sentiment-bars", views.SentimentBarsView.as_view()),
     path("platform-comparison", views.PlatformComparisonView.as_view()),
     path("influencers", views.InfluencerListView.as_view()),
-    path("mentions", views.MentionListView.as_view()),
     path("alerts", views.AlertListView.as_view()),
-    path("alert-rules", views.AlertRuleListView.as_view()),
-    path("crises", views.CrisisListView.as_view()),
     path("assistant", views.AssistantView.as_view()),
     path("post-analysis", views.PostAnalysisView.as_view()),
-    path("reports", views.ReportListView.as_view()),
     path("report-types", views.ReportTypesView.as_view()),
-    path("scheduled-reports", views.ScheduledReportsView.as_view()),
-    path("team", views.TeamListView.as_view()),
-    path("integrations", views.IntegrationListView.as_view()),
     path("audit-logs", views.AuditLogListView.as_view()),
-]
+] + router.urls

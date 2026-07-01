@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { PageContainer } from "@/components/layout/PageHeading";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Skeleton } from "@/components/ui/misc";
-import { useCrises } from "@/lib/queries";
+import { useAddCrisisEvent, useCrises, useUpdateCrisis } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import type { Intent } from "@/lib/types";
 
@@ -16,8 +17,38 @@ const intentColor: Record<Intent, string> = {
 export default function CrisisPage() {
   const { data } = useCrises();
   const c = data?.[0];
+  const updateCrisis = useUpdateCrisis();
+  const addEvent = useAddCrisisEvent();
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteText, setNoteText] = useState("");
 
   if (!c) return <PageContainer><Skeleton className="h-96 rounded-[14px]" /></PageContainer>;
+
+  const resolved = c.status === "resolved";
+
+  function escalate() {
+    if (!c) return;
+    updateCrisis.mutate({ id: c.id, patch: { score: Math.min(100, c.score + 10) } });
+    addEvent.mutate({ id: c.id, event: { title: "Escalated", detail: "Incident lead escalated the crisis score.", dot: "#ef4444", tag: "Ochiengs Moses", tagIntent: "critical" } });
+  }
+
+  function startStrategy(title: string) {
+    if (!c) return;
+    addEvent.mutate({ id: c.id, event: { title: `Strategy started: ${title}`, detail: `"${title}" is now in progress.`, dot: "#6366f1", tag: "In progress", tagIntent: "info" } });
+  }
+
+  function submitNote() {
+    if (!c || !noteText.trim()) return;
+    addEvent.mutate({ id: c.id, event: { title: "Note added", detail: noteText.trim(), dot: "#64748b", tag: "Ochiengs Moses", tagIntent: "neutral" } });
+    setNoteText("");
+    setNoteOpen(false);
+  }
+
+  function resolve() {
+    if (!c) return;
+    updateCrisis.mutate({ id: c.id, patch: { status: "resolved" } });
+    addEvent.mutate({ id: c.id, event: { title: "Incident resolved", detail: "Crisis marked as resolved.", dot: "#22c55e", tag: "Ochiengs Moses", tagIntent: "positive" } });
+  }
 
   return (
     <PageContainer className="flex flex-col gap-3.5">
@@ -26,8 +57,8 @@ export default function CrisisPage() {
         <div className="grid h-11 w-11 place-items-center rounded-xl bg-[rgba(239,68,68,.2)] text-[20px] text-[var(--color-critical)]">◈</div>
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="text-[17px] font-semibold">Active incident · {c.title}</span>
-            <span className="mono live-dot rounded-full bg-[var(--color-critical)] px-[9px] py-[3px] text-[10px] text-white">LIVE · {c.severity}</span>
+            <span className="text-[17px] font-semibold">{resolved ? "Resolved incident" : "Active incident"} · {c.title}</span>
+            <span className="mono live-dot rounded-full bg-[var(--color-critical)] px-[9px] py-[3px] text-[10px] text-white">{resolved ? "RESOLVED" : "LIVE"} · {c.severity}</span>
           </div>
           <p className="mono mt-0.5 text-[12px] text-[var(--color-muted)]">
             Opened {c.opened} · Owner: {c.owner} · {c.signals[2]?.value} amplifying · 2.8M reach exposed
@@ -38,7 +69,13 @@ export default function CrisisPage() {
             <div className="mono text-[26px] font-semibold text-[var(--color-critical)]">{c.score}</div>
             <div className="text-[10px] text-[var(--color-faint)]">crisis score</div>
           </div>
-          <button className="rounded-[9px] bg-[var(--color-critical)] px-4 py-2 text-[13px] font-medium text-white">Escalate</button>
+          <button
+            onClick={escalate}
+            disabled={resolved || updateCrisis.isPending}
+            className="rounded-[9px] bg-[var(--color-critical)] px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50"
+          >
+            Escalate
+          </button>
         </div>
       </div>
 
@@ -104,7 +141,13 @@ export default function CrisisPage() {
                   <p className="mb-2.5 text-[12px] leading-[1.45] text-[var(--color-muted)]">{s.desc}</p>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-[var(--color-faint)]">Impact: <span className="text-[var(--color-muted)]">{s.impact}</span></span>
-                    <button className="ml-auto rounded-[7px] bg-[var(--color-primary)] px-3 py-1.5 text-[11px] font-medium text-white">Start →</button>
+                    <button
+                      onClick={() => startStrategy(s.title)}
+                      disabled={resolved}
+                      className="ml-auto rounded-[7px] bg-[var(--color-primary)] px-3 py-1.5 text-[11px] font-medium text-white disabled:opacity-50"
+                    >
+                      Start →
+                    </button>
                   </div>
                 </div>
               ))}
@@ -130,9 +173,25 @@ export default function CrisisPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-3.5 flex gap-2 border-t border-[var(--color-border)] pt-3.5">
-              <button className="flex-1 rounded-lg border border-[var(--color-border)] py-2 text-[12px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">Add note</button>
-              <button className="flex-1 rounded-lg border border-[rgba(34,197,94,.4)] py-2 text-[12px] text-[var(--color-positive)]">Resolve incident</button>
+            <div className="mt-3.5 border-t border-[var(--color-border)] pt-3.5">
+              {noteOpen && (
+                <div className="mb-2.5 flex flex-col gap-2">
+                  <textarea
+                    autoFocus
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Add a note for the war room…"
+                    className="h-[70px] w-full resize-none rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-2.5 text-[12px] outline-none ring-focus"
+                  />
+                  <button onClick={submitNote} disabled={!noteText.trim() || addEvent.isPending} className="self-end rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-[11px] font-medium text-white disabled:opacity-50">Post note</button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button onClick={() => setNoteOpen((v) => !v)} className="flex-1 rounded-lg border border-[var(--color-border)] py-2 text-[12px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">Add note</button>
+                <button onClick={resolve} disabled={resolved || updateCrisis.isPending} className="flex-1 rounded-lg border border-[rgba(34,197,94,.4)] py-2 text-[12px] text-[var(--color-positive)] disabled:opacity-50">
+                  {resolved ? "Resolved" : "Resolve incident"}
+                </button>
+              </div>
             </div>
           </Card>
         </div>

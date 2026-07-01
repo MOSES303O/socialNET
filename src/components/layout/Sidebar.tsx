@@ -1,18 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { MoreHorizontal, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut, X } from "lucide-react";
 import { navGroups } from "./nav";
 import { LogoMark } from "./Logo";
 import { useUI } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
-import { currentUser } from "@/lib/session";
+import { useMe } from "@/lib/queries";
+import { ROLE_LABELS } from "@/lib/types";
 
 export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; onMobileClose: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
   const setPalette = useUI((s) => s.setPaletteOpen);
+  const landingScreen = useUI((s) => s.landingScreen);
+  const { data: me } = useMe();
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }
 
   return (
     <>
@@ -28,8 +37,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; on
       >
         {/* Brand */}
         <div className="flex items-center gap-2.5 px-2 pb-4 pt-1">
-          <LogoMark />
-          <span className="text-[14.5px] font-semibold tracking-[-0.02em]">socialNET</span>
+          <Link href={landingScreen} onClick={onMobileClose} className="flex items-center gap-2.5">
+            <LogoMark />
+            <span className="text-[14.5px] font-semibold tracking-[-0.02em]">socialNET</span>
+          </Link>
           <button
             onClick={() => setPalette(true)}
             className="mono ml-auto rounded-md border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] text-[var(--color-faint)] hover:text-[var(--color-ink)]"
@@ -88,18 +99,26 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; on
         </nav>
 
         {/* Footer user */}
-        <Link
-          href="/profile"
-          onClick={onMobileClose}
-          className="mt-2 flex items-center gap-2.5 rounded-lg border-t border-[var(--color-border)] px-2 py-2.5 pt-3 transition-colors hover:bg-[var(--color-subtle)]"
-        >
-          <Avatar initials={currentUser.initials} size="sm" />
-          <div className="min-w-0 leading-tight">
-            <p className="truncate text-[12px] font-medium">{currentUser.name}</p>
-            <p className="truncate text-[10px] text-[var(--color-faint)]">{currentUser.role}</p>
-          </div>
-          <MoreHorizontal className="ml-auto h-4 w-4 text-[var(--color-faint)]" />
-        </Link>
+        <div className="mt-2 flex items-center gap-1 border-t border-[var(--color-border)] pt-3">
+          <Link
+            href="/profile"
+            onClick={onMobileClose}
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-[var(--color-subtle)]"
+          >
+            <Avatar initials={me?.initials ?? "…"} size="sm" />
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-[12px] font-medium">{me?.name ?? "Loading…"}</p>
+              <p className="truncate text-[10px] text-[var(--color-faint)]">{me ? ROLE_LABELS[me.role] : ""}</p>
+            </div>
+          </Link>
+          <button
+            onClick={signOut}
+            title="Sign out"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--color-faint)] hover:bg-[var(--color-subtle)] hover:text-[var(--color-critical)]"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </aside>
     </>
   );

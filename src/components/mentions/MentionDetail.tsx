@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sparkles, RotateCw } from "lucide-react";
 import type { Mention } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
 import { PlatformIcon, platformLabel } from "@/components/ui/PlatformIcon";
+import { useAddCrisisEvent, useAddMentionNote, useCrises, useReplyToMention, useTeam, useUpdateMention } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const priorityColor: Record<string, string> = {
@@ -17,6 +18,54 @@ const priorityColor: Record<string, string> = {
 
 export function MentionDetail({ mention: m, onResolve }: { mention: Mention; onResolve: (id: string) => void }) {
   const [reply, setReply] = useState(m.suggestedReply);
+  const [sent, setSent] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const router = useRouter();
+
+  const team = useTeam();
+  const crises = useCrises();
+  const replyMutation = useReplyToMention();
+  const noteMutation = useAddMentionNote();
+  const updateMention = useUpdateMention();
+  const addCrisisEvent = useAddCrisisEvent();
+
+  function useAndReply() {
+    if (!reply.trim()) return;
+    replyMutation.mutate({ id: m.id, text: reply }, { onSuccess: () => setSent(true) });
+  }
+
+  function regenerate() {
+    setReply(m.suggestedReply);
+  }
+
+  function assignTo(name: string) {
+    updateMention.mutate({ id: m.id, patch: { assignee: name } });
+    setAssignOpen(false);
+  }
+
+  function submitNote() {
+    if (!noteText.trim()) return;
+    noteMutation.mutate({ id: m.id, text: noteText.trim() }, { onSuccess: () => { setNoteText(""); setNoteOpen(false); } });
+  }
+
+  function escalateToCrisis() {
+    const crisis = crises.data?.[0];
+    if (!crisis) return;
+    addCrisisEvent.mutate({
+      id: crisis.id,
+      event: {
+        title: "Mention escalated",
+        detail: `${m.author.name} (${m.author.handle}): "${m.content.slice(0, 80)}${m.content.length > 80 ? "…" : ""}"`,
+        dot: "#ef4444",
+        tag: "Ochiengs Moses",
+        tagIntent: "critical",
+      },
+    });
+    router.push("/crisis");
+  }
 
   return (
     <div className="mx-auto max-w-[720px] p-[22px_26px]">
@@ -92,32 +141,96 @@ export function MentionDetail({ mention: m, onResolve }: { mention: Mention; onR
         </div>
       </div>
 
+      {/* notes */}
+      {m.notes && m.notes.length > 0 && (
+        <div className="card mb-4 p-[18px]">
+          <div className="mb-3 text-[13px] font-semibold">Notes</div>
+          <div className="space-y-2.5">
+            {m.notes.map((n, i) => (
+              <div key={i} className="text-[12.5px]">
+                <span className="font-medium">{n.author}</span>
+                <span className="ml-2 text-[10px] text-[var(--color-faint)]">{n.at}</span>
+                <p className="mt-0.5 text-[var(--color-muted)]">{n.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* suggested response */}
       <div className="card mb-[18px] p-[18px]">
         <div className="mb-3 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[var(--color-primary-ink)]" />
           <span className="text-[13px] font-semibold">Suggested response</span>
-          <button className="mono ml-auto flex items-center gap-1 text-[11px] text-[var(--color-primary-ink)]">
+          <button onClick={regenerate} className="mono ml-auto flex items-center gap-1 text-[11px] text-[var(--color-primary-ink)]">
             <RotateCw className="h-3 w-3" /> Regenerate
           </button>
         </div>
         <textarea
+          ref={textareaRef}
           value={reply}
-          onChange={(e) => setReply(e.target.value)}
+          onChange={(e) => { setReply(e.target.value); setSent(false); }}
           rows={3}
           className="w-full resize-none rounded-[10px] border border-[var(--color-border)] bg-[var(--color-canvas)] p-3.5 text-[14px] leading-[1.6] outline-none ring-focus"
         />
-        <div className="mt-3 flex gap-2.5">
-          <button className="rounded-[9px] bg-[var(--color-primary)] px-4 py-2 text-[13px] font-medium text-white hover:bg-[var(--color-primary-hover)]">Use &amp; reply</button>
-          <button className="rounded-[9px] border border-[var(--color-border)] px-4 py-2 text-[13px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">Edit</button>
+        <div className="mt-3 flex items-center gap-2.5">
+          <button
+            onClick={useAndReply}
+            disabled={!reply.trim() || replyMutation.isPending}
+            className="rounded-[9px] bg-[var(--color-primary)] px-4 py-2 text-[13px] font-medium text-white hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+          >
+            Use &amp; reply
+          </button>
+          <button
+            onClick={() => textareaRef.current?.focus()}
+            className="rounded-[9px] border border-[var(--color-border)] px-4 py-2 text-[13px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)]"
+          >
+            Edit
+          </button>
+          {sent && <span className="text-[11px] text-[var(--color-positive)]">Sent ✓</span>}
         </div>
       </div>
 
       {/* actions */}
-      <div className="flex flex-wrap gap-2.5">
-        <Action label="Assign →" />
-        <Action label="Add note" />
-        <Action label="Escalate to Crisis" />
+      <div className="flex flex-wrap items-start gap-2.5">
+        <div className="relative">
+          <button onClick={() => setAssignOpen((v) => !v)} className="rounded-[9px] border border-[var(--color-border)] px-3.5 py-2 text-[12.5px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">
+            {m.assignee ? `Assigned: ${m.assignee}` : "Assign →"}
+          </button>
+          {assignOpen && (
+            <div className="card absolute left-0 top-[calc(100%+6px)] z-10 w-48 p-1.5">
+              {(team.data ?? []).map((t) => (
+                <button key={t.id} onClick={() => assignTo(t.name)} className="block w-full rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)] hover:text-[var(--color-ink)]">
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="relative">
+          <button onClick={() => setNoteOpen((v) => !v)} className="rounded-[9px] border border-[var(--color-border)] px-3.5 py-2 text-[12.5px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">
+            Add note
+          </button>
+          {noteOpen && (
+            <div className="card absolute left-0 top-[calc(100%+6px)] z-10 w-72 p-2.5">
+              <textarea
+                autoFocus
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                rows={3}
+                placeholder="Add an internal note…"
+                className="w-full resize-none rounded-md border border-[var(--color-border)] bg-[var(--color-canvas)] p-2 text-[12px] outline-none ring-focus"
+              />
+              <button onClick={submitNote} disabled={!noteText.trim() || noteMutation.isPending} className="mt-2 w-full rounded-md bg-[var(--color-primary)] py-1.5 text-[12px] font-medium text-white disabled:opacity-50">Save note</button>
+            </div>
+          )}
+        </div>
+
+        <button onClick={escalateToCrisis} disabled={addCrisisEvent.isPending} className="rounded-[9px] border border-[rgba(239,68,68,.35)] px-3.5 py-2 text-[12.5px] text-[var(--color-critical)] hover:bg-[var(--color-critical-soft)] disabled:opacity-50">
+          Escalate to Crisis
+        </button>
+
         <button
           onClick={() => onResolve(m.id)}
           disabled={m.status === "resolved"}
@@ -132,13 +245,5 @@ export function MentionDetail({ mention: m, onResolve }: { mention: Mention; onR
         </button>
       </div>
     </div>
-  );
-}
-
-function Action({ label }: { label: string }) {
-  return (
-    <button className="rounded-[9px] border border-[var(--color-border)] px-3.5 py-2 text-[12.5px] text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">
-      {label}
-    </button>
   );
 }

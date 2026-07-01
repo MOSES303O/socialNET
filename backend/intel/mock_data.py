@@ -112,12 +112,6 @@ REPORT_TYPES = [
     {"title": "Campaign report", "desc": "Full analysis scoped to a campaign or hashtag.", "meta": "On demand", "type": "campaign"},
 ]
 
-SCHEDULED_REPORTS = [
-    {"id": "s1", "name": "Monthly Executive", "freq": "Monthly · 1st · 9:00 AM", "recipients": "Leadership (4)", "on": True},
-    {"id": "s2", "name": "Weekly Performance", "freq": "Weekly · Mon · 8:00 AM", "recipients": "Marketing (8)", "on": True},
-    {"id": "s3", "name": "Daily Summary", "freq": "Daily · 8:00 AM", "recipients": "You", "on": True},
-]
-
 SAMPLE_POST_ANALYSIS = {
     "url": "https://x.com/tech_maren/status/1834500000000000000",
     "platform": "twitter",

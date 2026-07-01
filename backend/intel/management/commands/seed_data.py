@@ -1,6 +1,15 @@
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from intel.models import Alert, AlertRule, AuditLog, Crisis, Integration, Influencer, Mention, Report, TeamUser
+from intel.models import (
+    Alert, AlertRule, AuditLog, Crisis, Integration, Influencer, Mention, Report, ScheduledReport, TeamUser,
+)
+
+User = get_user_model()
+
+# Dev-only shared password for every seeded demo account — never used outside
+# local development, where the whole DB is disposable/reseedable anyway.
+DEMO_PASSWORD = "vela-demo-2026"
 
 MENTIONS = [
     {
@@ -166,6 +175,12 @@ INTEGRATIONS = [
     {"id": "i6", "platform": "linkedin", "name": "LinkedIn", "account": "—", "status": "disconnected", "detail": "Connect to track mentions"},
 ]
 
+SCHEDULED_REPORTS = [
+    {"id": "s1", "name": "Monthly Executive", "freq": "Monthly · 1st · 9:00 AM", "recipients": "Leadership (4)", "on": True},
+    {"id": "s2", "name": "Weekly Performance", "freq": "Weekly · Mon · 8:00 AM", "recipients": "Marketing (8)", "on": True},
+    {"id": "s3", "name": "Daily Summary", "freq": "Daily · 8:00 AM", "recipients": "You", "on": True},
+]
+
 AUDIT_LOGS = [
     {"id": "l1", "who": "Ochiengs Moses", "initials": "PA", "color": "#6366f1", "action": "approved holding statement", "target": "Crisis #C-2291", "category": "config", "time": "17:10 · Yesterday"},
     {"id": "l2", "who": "Marcus Lee", "initials": "ML", "color": "#a855f7", "action": "changed alert threshold", "target": "Sentiment crash rule", "category": "config", "time": "15:02 · Yesterday"},
@@ -204,16 +219,23 @@ class Command(BaseCommand):
         for row in CRISES:
             Crisis.objects.create(**row)
 
+        User.objects.filter(username__in=[row["email"] for row in TEAM]).delete()
         TeamUser.objects.all().delete()
         for row in TEAM:
-            TeamUser.objects.create(**row)
+            user = User.objects.create_user(username=row["email"], email=row["email"], password=DEMO_PASSWORD)
+            TeamUser.objects.create(**row, user=user)
 
         Integration.objects.all().delete()
         for row in INTEGRATIONS:
             Integration.objects.create(**row)
+
+        ScheduledReport.objects.all().delete()
+        for row in SCHEDULED_REPORTS:
+            ScheduledReport.objects.create(**row)
 
         AuditLog.objects.all().delete()
         for row in AUDIT_LOGS:
             AuditLog.objects.create(**row)
 
         self.stdout.write(self.style.SUCCESS("Seeded socialNET demo data."))
+        self.stdout.write(f"Demo login: ochiengs@vela.co / {DEMO_PASSWORD}")
