@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Switch } from "@/components/ui/misc";
 import { useUI } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { currentUser } from "@/lib/mock/admin";
+import { currentUser } from "@/lib/session";
 
 const fields = [
   { label: "Full name", value: "Ochiengs Moses" },

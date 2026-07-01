@@ -8,7 +8,7 @@ import { LogoMark } from "./Logo";
 import { useUI } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
-import { currentUser } from "@/lib/mock/admin";
+import { currentUser } from "@/lib/session";
 
 export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen: boolean; onMobileClose: () => void }) {
   const pathname = usePathname();

@@ -10,3 +10,9 @@ npm-debug.log*
 *.tsbuildinfo
 next-env.d.ts.bak
 /.claude
+
+# Django backend
+backend/.venv/
+backend/db.sqlite3
+backend/**/__pycache__/
+backend/**/*.pyc

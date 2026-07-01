@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Sparkles, Plus, MessageSquare, ArrowUp } from "lucide-react";
 import { Spinner } from "@/components/ui/misc";
 import { askAssistant } from "@/lib/api";
-import { initialChat, suggestedPrompts, chatHistory } from "@/lib/mock/ai";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, Intent } from "@/lib/types";
 
@@ -13,6 +12,41 @@ const cardColor: Record<Intent, string> = {
   positive: "var(--color-positive)", warning: "var(--color-warning)",
   critical: "var(--color-critical)", info: "var(--color-info)", neutral: "var(--color-muted)",
 };
+
+// Seed conversation + UI copy for the assistant panel — static chrome, not
+// backend data (the actual replies come from askAssistant -> Django).
+const suggestedPrompts = [
+  "Summarize audience sentiment for the last campaign.",
+  "Which influencers are driving engagement?",
+  "Identify emerging risks for our brand.",
+  "Suggest strategies to improve engagement.",
+];
+
+const chatHistory = [
+  "Negative spike investigation",
+  "#VelaGlow campaign recap",
+  "Competitor share of voice",
+  "Q2 influencer shortlist",
+];
+
+const initialChat: ChatMessage[] = [
+  {
+    id: "w1", role: "user",
+    content: "What caused the spike in negative mentions yesterday?",
+  },
+  {
+    id: "w2", role: "assistant",
+    content:
+      "Negative mentions rose +218% in 6 hours yesterday, driven almost entirely by an unverified product-recall rumor. It originated in a single Reddit thread on r/skincareaddiction at 14:20 UTC, then amplified onto X via three mid-size accounts. Sentiment recovered partially after your team’s holding statement, but the conversation is still active.",
+    cards: [
+      { t: "Negative mentions", v: "+218%", s: "6h window", intent: "critical" },
+      { t: "Origin", v: "r/skincareaddiction", s: "1 thread → 2.4k upvotes", intent: "warning" },
+      { t: "Reach exposed", v: "2.8M", s: "before mitigation", intent: "warning" },
+    ],
+    sources: ["Reddit · r/skincareaddiction", "X · @dailyhealthnut", "News · TechWire"],
+    action: { label: "Open Crisis Center", href: "/crisis" },
+  },
+];
 
 export default function AssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialChat);

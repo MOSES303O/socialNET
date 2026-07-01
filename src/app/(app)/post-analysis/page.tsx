@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link2, Sparkles, ArrowUp, Megaphone, Wrench } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageHeading";
 import { Card } from "@/components/ui/Card";
@@ -9,15 +9,15 @@ import { Spinner } from "@/components/ui/misc";
 import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { Donut } from "@/components/charts/Charts";
 import { analyzePost } from "@/lib/api";
-import { samplePostAnalysis } from "@/lib/mock/ai";
 import type { PostAnalysis } from "@/lib/types";
 
 const recoIcon = { amplify: ArrowUp, engage: Sparkles, future: Wrench };
+const DEFAULT_URL = "https://x.com/tech_maren/status/1834500000000000000";
 
 export default function PostAnalysisPage() {
-  const [url, setUrl] = useState(samplePostAnalysis.url);
+  const [url, setUrl] = useState(DEFAULT_URL);
   const [loading, setLoading] = useState(false);
-  const [r, setR] = useState<PostAnalysis | null>(samplePostAnalysis);
+  const [r, setR] = useState<PostAnalysis | null>(null);
 
   async function run() {
     setLoading(true);
@@ -26,6 +26,8 @@ export default function PostAnalysisPage() {
     setR(res);
     setLoading(false);
   }
+
+  useEffect(() => { run(); }, []);
 
   return (
     <PageContainer className="flex flex-col gap-4">

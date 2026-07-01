@@ -2,15 +2,28 @@
 
 An **AI-powered Social Media Intelligence & Brand Monitoring platform** — a Brandwatch / Sprout Social / Meltwater–class command center for monitoring brand reputation, analyzing audience sentiment, managing crises, and reporting to leadership.
 
-Built with **Next.js 15 (App Router)**, **React 19**, **TypeScript**, **Tailwind CSS v4**, **Recharts**, **Zustand**, **TanStack Query**, and **React Hook Form**. It runs entirely on **mock data** today, behind a single API seam (`src/lib/api.ts`) so a **Django REST** backend drops in later without touching any component.
+Built with **Next.js 15 (App Router)**, **React 19**, **TypeScript**, **Tailwind CSS v4**, **Recharts**, **Zustand**, **TanStack Query**, and **React Hook Form**, backed by a **Django REST** API (`backend/`) that serves the same Vela demo dataset the frontend was originally mocked with. All data access goes through one seam (`src/lib/api.ts`) so components never talk to the backend directly.
 
 ## Getting started
 
+Run the backend and frontend in two terminals:
+
 ```bash
+# Terminal 1 — Django API (http://localhost:8500)
+cd backend
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt   # .venv/bin/pip on macOS/Linux
+.venv\Scripts\python manage.py migrate
+.venv\Scripts\python manage.py seed_data        # loads the Vela demo dataset
+.venv\Scripts\python manage.py runserver 8500
+
+# Terminal 2 — Next.js app (http://localhost:3000)
 npm install        # use --legacy-peer-deps if your npm enforces peer ranges
-npm run dev        # http://localhost:3000  (landing page → /dashboard)
+npm run dev
 npm run build      # production build (type-checked)
 ```
+
+`next.config.mjs` rewrites `/api/*` to the Django server (`DJANGO_API_URL`, default `http://127.0.0.1:8500/api`) so the browser only ever calls the Next.js origin — no CORS setup needed. Override the backend URL by setting `DJANGO_API_URL` before `npm run dev`.
 
 ## Screens (16)
 
@@ -53,11 +66,14 @@ src/
     dashboard/ KpiCard      mentions/ MentionCard, MentionDetail
   lib/
     types.ts    domain model (mirrors API responses)
-    api.ts      ← THE BACKEND SEAM
+    api.ts      ← THE BACKEND SEAM (fetches from the Django API)
     queries.ts  TanStack Query hooks
     store.ts    Zustand UI state (date range, sidebar)
     utils.ts    formatting helpers
-    mock/       core, reports, crisis, ai, admin
+    session.ts  local signed-in identity (no real auth yet)
+backend/
+  config/       Django project (settings, urls)
+  intel/        models, serializers, views, admin, seed_data command
 ```
 
 ## State & data flow
@@ -67,30 +83,16 @@ src/
 - **React Hook Form** powers the settings, login and register forms.
 - **Recharts** renders every visualization through small wrappers in `components/charts`.
 
-## Integrating the Django backend
+## The Django backend
 
-Every screen reads data **only** through `src/lib/api.ts`. Each function returns mock data after a simulated delay and is annotated with its intended endpoint:
+`backend/` is a small Django + Django REST Framework project (`intel` app) that serves the exact dataset the frontend used to mock — Vela's recall-rumor storyline, mentions, crisis, team, alerts, reports, etc.
 
-```ts
-// GET /api/metrics/kpis/?range=
-export const getKpis = (range) => delay(kpis);
+- **Model-backed** (SQLite, editable via `/admin/`): `Mention`, `Influencer`, `Alert`, `AlertRule`, `Report`, `Crisis`, `TeamUser`, `Integration`, `AuditLog`. Seeded by `python manage.py seed_data`.
+- **Code-driven** (`intel/mock_data.py`, no DB): KPI cards, brand health, chart series (mention volume, sentiment mix, platform breakdown, trends, hashtags, engagement), the AI assistant's canned replies, and the sample post analysis — these are dashboard aggregates, not independent rows.
+- Every route lives in `intel/urls.py` under `/api/`, with no trailing slash (`APPEND_SLASH = False`) to match Next's rewrite.
+- No auth yet — DRF permissions are `AllowAny`, matching the frontend's current no-login flow.
 
-// POST /api/analyze-post/  { url }
-export function analyzePost(url) { return delay({ ...sample, url }); }
-```
-
-To go live, replace each body with a real `fetch()` — signatures and the types in `src/lib/types.ts` stay identical, so no component or query hook changes:
-
-```ts
-export async function getKpis(range: DateRange): Promise<Kpi[]> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/metrics/kpis/?range=${range}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.json();
-}
-```
-
-The `types.ts` interfaces describe exactly what each Django REST serializer should emit.
+`src/lib/api.ts` calls these endpoints with `fetch()`; the function signatures and `src/lib/types.ts` interfaces are unchanged from the mock-data version, so no component changes were needed.
 
 ## Design system
 

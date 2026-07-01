@@ -32,6 +32,70 @@ export interface SeriesPoint {
   [key: string]: number | string;
 }
 
+export interface SentimentSlice {
+  name: string;
+  value: number;
+  color: string;
+}
+
+export interface PlatformStat {
+  platform: string;
+  mentions: number;
+  color: string;
+}
+
+export interface Trend {
+  rank: string;
+  term: string;
+  vol: string;
+  change: string;
+  intent: Intent;
+}
+
+export interface LiveFeedItem {
+  platform: Platform;
+  text: string;
+  meta: string;
+  sentiment: Sentiment;
+}
+
+export interface Hashtag {
+  tag: string;
+  vol: string;
+  reach: string;
+  change: string;
+  intent: Intent;
+  spark: number[];
+}
+
+export interface SentimentBar {
+  week: string;
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
+export interface PlatformComparisonRow {
+  platform: string;
+  mentions: number;
+  engagement: number;
+}
+
+export interface ReportType {
+  title: string;
+  desc: string;
+  meta: string;
+  type: Report["type"];
+}
+
+export interface ScheduledReport {
+  id: string;
+  name: string;
+  freq: string;
+  recipients: string;
+  on: boolean;
+}
+
 export interface Author {
   name: string;
   handle: string;
